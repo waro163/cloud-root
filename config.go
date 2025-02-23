@@ -19,3 +19,11 @@ type OutgoingService struct {
 		Value string `json:"Value"`
 	} `json:"DefaultRequestHeaders"`
 }
+
+type AuthSetConfig struct {
+	Url          string
+	ClientId     string
+	ClientSecret string
+	Resource     string
+	Scope        string
+}
