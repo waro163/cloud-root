@@ -1,6 +1,7 @@
 package client
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -38,4 +39,19 @@ func NewClient(cfg cloudroot.OutgoingService, opts ...Options) (*BaseClient, err
 		opt(baseClient)
 	}
 	return baseClient, nil
+}
+
+func (cli *BaseClient) DoBaseRequest(req *http.Request) (*http.Response, []byte, error) {
+	var resp *http.Response
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return resp, nil, err
+	}
+	return resp, body, nil
 }
