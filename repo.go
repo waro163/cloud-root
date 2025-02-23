@@ -16,46 +16,44 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var storeMap map[string]DbStore
-
 type DbStore struct {
-	sqlStore   *sqlx.DB
-	cacheStore *redis.Client
-	mongoStore *mongo.Database
+	SqlStore   *sqlx.DB
+	CacheStore *redis.Client
+	MongoStore *mongo.Database
 }
 
 var (
-	errSQLDriverNotSupported       = errors.New("SQL driver not supported")
-	errMissingConnectionStringData = errors.New("missing connection string data")
+	ErrSQLDriverNotSupported       = errors.New("SQL driver not supported")
+	ErrMissingConnectionStringData = errors.New("missing connection string data")
 )
 
-func CreateStores(cfg map[string]DatabaseConfig) error {
-	storeMap = make(map[string]DbStore)
+func CreateStores(cfg map[string]DatabaseConfig) (map[string]DbStore, error) {
+	storeMap := make(map[string]DbStore)
 	for name, dbConfig := range cfg {
 		switch dbConfig.Driver {
 		case "mysql":
 			db, err := newSqlStore(dbConfig)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			storeMap[name] = DbStore{sqlStore: db}
+			storeMap[name] = DbStore{SqlStore: db}
 		case "redis":
 			db, err := newRedisStore(dbConfig)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			storeMap[name] = DbStore{cacheStore: db}
+			storeMap[name] = DbStore{CacheStore: db}
 		case "mongo":
 			db, err := newMongoStore(dbConfig)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			storeMap[name] = DbStore{mongoStore: db}
+			storeMap[name] = DbStore{MongoStore: db}
 		default:
-			return fmt.Errorf("not found store driver: %s", dbConfig.Driver)
+			return nil, fmt.Errorf("not found store driver: %s", dbConfig.Driver)
 		}
 	}
-	return nil
+	return storeMap, nil
 }
 
 func newRedisStore(cfg DatabaseConfig) (*redis.Client, error) {
@@ -127,7 +125,7 @@ func newSqlStore(cfg DatabaseConfig) (*sqlx.DB, error) {
 
 func GetConnectionByDriver(driver string, opts DatabaseConfig) (string, error) {
 	if driver == "" || opts.Host == "" {
-		return "", errMissingConnectionStringData
+		return "", ErrMissingConnectionStringData
 	}
 
 	host := opts.Host
@@ -139,17 +137,17 @@ func GetConnectionByDriver(driver string, opts DatabaseConfig) (string, error) {
 	switch driver {
 	case "mysql":
 		if opts.DatabaseName == "" {
-			return "", errMissingConnectionStringData
+			return "", ErrMissingConnectionStringData
 		}
 		return fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true&allowCleartextPasswords=1&interpolateParams=%t", opts.User, opts.Password, host, opts.DatabaseName, true), nil
 	case "sqlite":
 		if host == "" {
-			return "", errMissingConnectionStringData
+			return "", ErrMissingConnectionStringData
 		}
 		return fmt.Sprintf("file:%s?cache=shared&mode=memory", host), nil
 	case "mongodb":
 		if opts.DatabaseName == "" {
-			return "", errMissingConnectionStringData
+			return "", ErrMissingConnectionStringData
 		}
 		//mongodb host format is "mongodb://localhost:27017/?authSource=admin"
 		if !strings.HasPrefix(host, "mongodb://") {
@@ -168,6 +166,6 @@ func GetConnectionByDriver(driver string, opts DatabaseConfig) (string, error) {
 		}
 		return u.String(), nil
 	default:
-		return "", errSQLDriverNotSupported
+		return "", ErrSQLDriverNotSupported
 	}
 }
