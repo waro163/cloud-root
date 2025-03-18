@@ -55,3 +55,23 @@ func (cli *BaseClient) DoBaseRequest(req *http.Request) (*http.Response, []byte,
 	}
 	return resp, body, nil
 }
+
+func (cli *BaseClient) DoBaseRequestRetry(req *http.Request, n int) (*http.Response, []byte, error) {
+	if n <= 0 {
+		n = 3
+	}
+	var resp *http.Response
+	var body []byte
+	var err error
+	for i := 0; i < n; i++ {
+		resp, body, err = cli.DoBaseRequest(req)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			continue
+		}
+		return resp, body, nil
+	}
+	return resp, body, err
+}
