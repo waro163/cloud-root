@@ -1,4 +1,4 @@
-package cloudroot
+package repo
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
+	cloudroot "github.com/waro163/cloud-root"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -27,7 +28,7 @@ var (
 	ErrMissingConnectionStringData = errors.New("missing connection string data")
 )
 
-func CreateStores(cfg map[string]DatabaseConfig) (map[string]DbStore, error) {
+func CreateStores(cfg map[string]cloudroot.DatabaseConfig) (map[string]DbStore, error) {
 	storeMap := make(map[string]DbStore)
 	for name, dbConfig := range cfg {
 		switch dbConfig.Driver {
@@ -56,7 +57,7 @@ func CreateStores(cfg map[string]DatabaseConfig) (map[string]DbStore, error) {
 	return storeMap, nil
 }
 
-func newRedisStore(cfg DatabaseConfig) (*redis.Client, error) {
+func newRedisStore(cfg cloudroot.DatabaseConfig) (*redis.Client, error) {
 	var addr = cfg.Host
 	if cfg.Port != "" {
 		addr = fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
@@ -79,7 +80,7 @@ func newRedisStore(cfg DatabaseConfig) (*redis.Client, error) {
 	return cli, nil
 }
 
-func newMongoStore(cfg DatabaseConfig) (*mongo.Database, error) {
+func newMongoStore(cfg cloudroot.DatabaseConfig) (*mongo.Database, error) {
 	var host = cfg.Host
 	if cfg.Port != "" {
 		host = fmt.Sprintf("%s:%s", host, cfg.Port)
@@ -106,7 +107,7 @@ func newMongoStore(cfg DatabaseConfig) (*mongo.Database, error) {
 	return db, nil
 }
 
-func newSqlStore(cfg DatabaseConfig) (*sqlx.DB, error) {
+func newSqlStore(cfg cloudroot.DatabaseConfig) (*sqlx.DB, error) {
 	dbConnection, err := GetConnectionByDriver(cfg.Driver, cfg)
 	if err != nil {
 		return nil, err
@@ -123,7 +124,7 @@ func newSqlStore(cfg DatabaseConfig) (*sqlx.DB, error) {
 	return cli, nil
 }
 
-func GetConnectionByDriver(driver string, opts DatabaseConfig) (string, error) {
+func GetConnectionByDriver(driver string, opts cloudroot.DatabaseConfig) (string, error) {
 	if driver == "" || opts.Host == "" {
 		return "", ErrMissingConnectionStringData
 	}
